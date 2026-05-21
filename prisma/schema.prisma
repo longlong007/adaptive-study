@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  title         String
+  clarification String?  // JSON: { currentLevel, weeklyHours, priorities, expectedOutcome, deadline }
+  status        String   @default("active") // active | completed | paused
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  nodes         Node[]
+}
+
+model Node {
+  id               String    @id @default(cuid())
+  goalId           String
+  parentId         String?
+  title            String
+  summary          String?
+  kind             String    @default("topic") // objective | topic | concept | action
+  isLeaf           Boolean   @default(false)
+  isExpanded       Boolean   @default(false)
+  order            Int       @default(0)
+  status           String    @default("pending") // pending | in_progress | completed
+  estimatedMinutes Int       @default(30)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  goal             Goal             @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  parent           Node?            @relation("NodeChildren", fields: [parentId], references: [id])
+  children         Node[]           @relation("NodeChildren")
+  contentBlocks    ContentBlock[]
+  learningSessions LearningSession[]
+  reviewItems      ReviewItem[]
+}
+
+model ContentBlock {
+  id        String   @id @default(cuid())
+  nodeId    String
+  kind      String   // markdown | image | mermaid | slide | three
+  payload   String   // JSON
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model LearningSession {
+  id          String    @id @default(cuid())
+  nodeId      String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  userNotes   String?
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model ReviewItem {
+  id             String    @id @default(cuid())
+  nodeId         String
+  intervalDays   Int       @default(1)
+  easeFactor     Float     @default(2.5)
+  reviewCount    Int       @default(0)
+  lastReviewedAt DateTime?
+  nextReviewAt   DateTime
+  lastGrade      String?   // forgot | vague | fluent
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
