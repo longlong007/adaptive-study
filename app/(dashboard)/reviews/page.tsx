@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getLLM } from "@/lib/llm";
+import { parseQuestionList } from "@/lib/llm/parse";
 import { REVIEW_SYSTEM, buildReviewPrompt } from "@/lib/prompts/review";
 import { ReviewPageClient } from "./review-client";
 
@@ -38,18 +39,21 @@ async function getDueItemsWithQuestions() {
           messages: [{ role: "user", content: prompt }],
           json: true,
         });
-        const parsed = JSON.parse(raw);
-        return { item, questions: parsed.questions ?? [] };
+        const questions = parseQuestionList(raw);
+        if (questions && questions.length > 0) {
+          return { item, questions };
+        }
       } catch {
-        return {
-          item,
-          questions: [
-            "回忆一下这个知识点的核心概念",
-            "举一个实际应用的例子",
-            "如何将这个知识点应用到实际工作中？",
-          ],
-        };
+        // fall through to defaults
       }
+      return {
+        item,
+        questions: [
+          "回忆一下这个知识点的核心概念",
+          "举一个实际应用的例子",
+          "如何将这个知识点应用到实际工作中？",
+        ],
+      };
     })
   );
 

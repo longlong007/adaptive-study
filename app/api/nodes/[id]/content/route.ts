@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getLLM } from "@/lib/llm";
+import { parseBlockList } from "@/lib/llm/parse";
 import { CONTENT_SYSTEM, buildContentPrompt } from "@/lib/prompts/content";
 import { NextResponse } from "next/server";
 
@@ -53,20 +54,18 @@ export async function POST(
     json: true,
   });
 
-  let parsed: { blocks: Array<{ kind: string; payload: Record<string, unknown> }> };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
+  const parsed = parseBlockList(raw);
+  if (!parsed) {
     return NextResponse.json({ error: "LLM parse error", raw }, { status: 500 });
   }
 
   const blocks = await prisma.$transaction(
-    (parsed.blocks ?? []).map((b, i) =>
+    parsed.map((b, i) =>
       prisma.contentBlock.create({
         data: {
           nodeId: id,
           kind: b.kind,
-          payload: JSON.stringify(b.payload),
+          payload: JSON.stringify(b.payload ?? {}),
           order: i,
         },
       })

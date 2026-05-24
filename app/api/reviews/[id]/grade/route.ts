@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getLLM } from "@/lib/llm";
+import { parseQuestionList } from "@/lib/llm/parse";
 import { nextInterval, nextReviewDate, type Grade } from "@/lib/ebbinghaus";
 import { REVIEW_SYSTEM, buildReviewPrompt } from "@/lib/prompts/review";
 import { NextResponse } from "next/server";
@@ -59,13 +60,12 @@ export async function GET(
     json: true,
   });
 
-  let questions: string[] = [];
-  try {
-    const parsed = JSON.parse(raw);
-    questions = parsed.questions ?? [];
-  } catch {
-    questions = ["请回忆该知识点的核心内容", "举一个实际应用的例子", "如何将这个知识点与其他知识联系起来？"];
-  }
+  const questions =
+    parseQuestionList(raw) ?? [
+      "请回忆该知识点的核心内容",
+      "举一个实际应用的例子",
+      "如何将这个知识点与其他知识联系起来？",
+    ];
 
   return NextResponse.json({ item, questions });
 }

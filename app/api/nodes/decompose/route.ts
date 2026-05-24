@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getLLM } from "@/lib/llm";
+import { parseNodeList, normalizeKind } from "@/lib/llm/parse";
 import {
   DECOMPOSE_SYSTEM,
   buildDecomposePrompt,
@@ -36,18 +37,18 @@ export async function POST(request: Request) {
       json: true,
     });
 
-    const parsed = parseNodes(raw);
+    const parsed = parseNodeList(raw);
     if (!parsed) return NextResponse.json({ error: "LLM parse error", raw }, { status: 500 });
 
     const created = await prisma.$transaction(
-      parsed.map((n: NodeInput, i: number) =>
+      parsed.map((n, i) =>
         prisma.node.create({
           data: {
             goalId,
             parentId: null,
             title: n.title,
             summary: n.summary ?? "",
-            kind: n.kind ?? "objective",
+            kind: normalizeKind(n.kind, "objective"),
             isLeaf: n.isLeaf ?? false,
             order: n.order ?? i,
             estimatedMinutes: n.estimatedMinutes ?? 60,
@@ -89,18 +90,18 @@ export async function POST(request: Request) {
     json: true,
   });
 
-  const parsed = parseNodes(raw);
+  const parsed = parseNodeList(raw);
   if (!parsed) return NextResponse.json({ error: "LLM parse error", raw }, { status: 500 });
 
   const created = await prisma.$transaction(
-    parsed.map((n: NodeInput, i: number) =>
+    parsed.map((n, i) =>
       prisma.node.create({
         data: {
           goalId: node.goalId,
           parentId: nodeId,
           title: n.title,
           summary: n.summary ?? "",
-          kind: n.kind ?? "topic",
+          kind: normalizeKind(n.kind, "topic"),
           isLeaf: n.isLeaf ?? false,
           order: n.order ?? i,
           estimatedMinutes: n.estimatedMinutes ?? 30,
@@ -112,22 +113,4 @@ export async function POST(request: Request) {
   await prisma.node.update({ where: { id: nodeId }, data: { isExpanded: true } });
 
   return NextResponse.json({ nodes: created });
-}
-
-interface NodeInput {
-  title: string;
-  summary?: string;
-  kind?: string;
-  isLeaf?: boolean;
-  order?: number;
-  estimatedMinutes?: number;
-}
-
-function parseNodes(raw: string): NodeInput[] | null {
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed.nodes ?? null;
-  } catch {
-    return null;
-  }
 }

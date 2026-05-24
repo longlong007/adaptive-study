@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx seed/ai-programmer-transition.ts",
+    "seed:real": "npx tsx seed/real-llm.ts",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force && npm run seed"
   },

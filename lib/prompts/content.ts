@@ -15,7 +15,9 @@ export const CONTENT_SYSTEM = `你是一位专业的技术教育内容创作者�
 2. markdown：详细步骤清单（numbered list + 代码示例）
 3. markdown：验收标准与常见错误
 
-严格返回 JSON：
+【严格输出格式】顶层必须是 { "blocks": [...] } 对象，禁止裸数组，禁止 Markdown 代码围栏，禁止 JSON 之外的任何文字。kind 字段只能是 "markdown" / "mermaid" / "image" 之一。
+
+输出格式示例：
 {
   "blocks": [
     {
@@ -24,7 +26,7 @@ export const CONTENT_SYSTEM = `你是一位专业的技术教育内容创作者�
     },
     {
       "kind": "mermaid",
-      "payload": { "code": "Mermaid 语法", "caption": "图表说明" }
+      "payload": { "code": "flowchart LR\\n  A --> B", "caption": "图表说明" }
     },
     {
       "kind": "image",
